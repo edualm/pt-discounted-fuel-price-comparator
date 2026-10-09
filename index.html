@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuel Brand Comparator</title>
+<meta name="description" content="Which Portuguese fuel brand is cheapest for you, after the discounts you can actually use.">
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --text: #1b1f24; --muted: #5b6573; --border: #dde1e6;
+    --accent: #0b6bcb; --accent-soft: #e6f0fb; --best: #e7f6ec; --best-border: #2e9e5b;
+    --warn: #9a5b00; --warn-soft: #fff4e0; --instant: #1d7a46; --balance: #7a4fc2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a; --surface: #1b2027; --text: #e6e9ee; --muted: #9aa4b2; --border: #2c333d;
+      --accent: #5aa6f0; --accent-soft: #1d2b3b; --best: #17301f; --best-border: #3fbf73;
+      --warn: #f0b45a; --warn-soft: #33270f; --instant: #5fd398; --balance: #b99af0;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a; --surface: #1b2027; --text: #e6e9ee; --muted: #9aa4b2; --border: #2c333d;
+    --accent: #5aa6f0; --accent-soft: #1d2b3b; --best: #17301f; --best-border: #3fbf73;
+    --warn: #f0b45a; --warn-soft: #33270f; --instant: #5fd398; --balance: #b99af0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  p.lede { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
+  select, input[type=number] { font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+  label.check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+  .status { font-size: .85rem; color: var(--muted); margin-top: 12px; }
+  .status.offline { color: var(--warn); }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  @media (min-width: 900px) { .layout { grid-template-columns: 340px minmax(0, 1fr); align-items: start; } }
+  .ranking { order: -1; }
+  @media (min-width: 900px) { .ranking { order: 0; } }
+  .brand-block { border-top: 1px solid var(--border); padding: 10px 0; }
+  .brand-block:first-of-type { border-top: 0; padding-top: 0; }
+  .brand-block h3 { font-size: .8rem; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
+  .disc { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; padding: 6px 0; }
+  .disc input[type=checkbox] { margin-top: 3px; }
+  .disc .name { font-weight: 500; }
+  .disc .meta { grid-column: 2; font-size: .8rem; color: var(--muted); }
+  .disc .val { grid-column: 2; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: .85rem; }
+  .disc .val input { width: 70px; padding: 2px 6px; }
+  .disc .note { grid-column: 2; font-size: .78rem; color: var(--warn); }
+  .badge { display: inline-block; font-size: .7rem; padding: 1px 6px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+  .badge.instant { color: var(--instant); }
+  .badge.balance, .badge.mixed { color: var(--balance); }
+  .badge.group { color: var(--muted); }
+  a { color: var(--accent); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: .78rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  th:nth-child(2), td:nth-child(2) { text-align: left; }
+  tr.best td { background: var(--best); }
+  tr.best td:first-child { box-shadow: inset 3px 0 0 var(--best-border); }
+  td { white-space: nowrap; }
+  td:nth-child(2), td:nth-child(5) { white-space: normal; }
+  td.eff { font-weight: 700; font-size: 1.05rem; }
+  td .applied { display: block; font-size: .75rem; color: var(--muted); text-align: right; }
+  .muted { color: var(--muted); }
+  .warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 10px; font-size: .85rem; margin-bottom: 12px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: .85rem; margin-top: 8px; }
+  footer { font-size: .8rem; color: var(--muted); margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Fuel brand comparator</h1>
+  <p class="lede">Average pump price per brand across Portugal (live from DGEG), minus the discounts <em>you</em> can use.</p>
+
+  <section class="card" aria-label="Settings">
+    <div class="controls">
+      <label class="field">Fuel <select id="fuel"></select></label>
+      <label class="field">Litres per fill <input id="litresPerFill" type="number" min="1" max="200" step="1"></label>
+      <label class="field">Litres per month <input id="litresPerMonth" type="number" min="1" max="2000" step="1"></label>
+      <label class="field">Day <select id="day"><option value="weekday">Weekday</option><option value="weekend">Weekend</option></select></label>
+      <label class="field">Brand price <select id="stat"><option value="mean">Average</option><option value="median">Median</option></select></label>
+      <label class="field">Min. stations per brand <input id="minStations" type="number" min="1" max="500" step="1"></label>
+    </div>
+    <label class="check" style="margin-top:12px"><input id="countBalance" type="checkbox"> Count balance discounts (card/app credit) at face value</label>
+    <div id="status" class="status">Loading…</div>
+  </section>
+
+  <div class="layout">
+    <section class="card" aria-label="Your discounts">
+      <h2>Discounts you can use</h2>
+      <div id="catalogWarn"></div>
+      <div id="discounts"></div>
+      <details id="inactiveWrap" hidden><summary>Expired / inactive programmes</summary><div id="inactive"></div></details>
+    </section>
+
+    <section class="card ranking" aria-label="Ranking">
+      <h2>Best brand for you</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Brand</th><th>Stations</th><th>Pump €/L</th><th>Discount</th><th>You pay €/L</th><th>Per fill</th><th>vs cheapest pump</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:.8rem;margin:10px 0 0">Pump prices already include the government's temporary ISP discount. Per fill = litres per fill × your price. "vs cheapest pump" compares with the brand that has the lowest pump price before discounts.</p>
+    </section>
+  </div>
+
+  <footer id="footer"></footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
